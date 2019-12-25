@@ -1,9 +1,16 @@
+---
+title: Seata 参数配置
+keywords: Seata
+description: Seata 参数配置。
+---
+
 # seata参数配置 1.0.0版本
-0.9.0.1前版本 https://seata.io/zh-cn/docs/user/configurations-old.html
+0.9.0.1之前版本 <a href="./configurations090.html">点击这里</a>
 
 ### 变更记录
 ```
-20191205: 增加seata.enabled、client.rm.report.success.enable
+20191221: 增加seata.enabled、client.rm.report.success.enable、
+transport.enable-client-batch-send-request、client.log.exceptionRate
 ```
 
 ### 公共部分
@@ -13,7 +20,6 @@
 | transport.serialization            | client和server通信编解码方式   |seata（ByteBuf）、protobuf、kryo、hession，默认seata |
 | transport.compressor            | client和server通信数据压缩方式   |none、gzip，默认none |
 | transport.heartbeat            | client和server通信心跳检测开关   |默认true开启 |
-
 
 ### server端
 
@@ -51,6 +57,8 @@
 |-------------------------------------------|----------------------------|----------------------------|
 | seata.enabled   | 是否开启spring-boot自动装配   |true、false，默认true（附录4） |
 | client.rm.report.success.enable   | 是否上报一阶段成功   |true、false，默认true用于保持分支事务生命周期记录完整，false可提高不少性能 |
+| transport.enable-client-batch-send-request            | 客户端事务消息请求是否批量合并发送   |默认true，false单条发送 |
+| client.log.exceptionRate                | 日志异常输出概率 |  默认100，目前用于undo回滚失败时异常堆栈输出，百分之一的概率输出，回滚失败基本是脏数据，无需输出堆栈占用硬盘空间  |
 | service.vgroup_mapping.my_test_tx_group   | 事务群组（附录1）   |my_test_tx_group为分组，配置项值为TC集群名 |
 | service.default.grouplist                 | TC服务列表（附录2） |  仅注册中心为file时使用  |
 | service.disableGlobalTransaction          | 全局事务开关 |  默认false。false为开启，true为关闭  |
@@ -60,7 +68,7 @@
 | client.rm.lock.retry.times                   | 校验或占用全局锁重试次数 |  默认30  |
 | client.rm.lock.retry.policy.branch-rollback-on-conflict    | 分支事务与其它全局回滚事务冲突时锁策略 |  默认true，优先释放本地锁让回滚成功  |
 | client.rm.report.retry.count                 | 一阶段结果上报TC重试次数 |  默认5次  |
-| client.rm.table.meta.check.enable            | 自动刷新缓存中的表结构 |  默认true  |
+| client.rm.table.meta.check.enable            | 自动刷新缓存中的表结构 |  默认false  |
 | client.tm.commit.retry.count              | 一阶段全局提交结果上报TC重试次数 |  默认1次，建议大于1  |
 | client.tm.rollback.retry.count            | 一阶段全局回滚结果上报TC重试次数 |  默认1次，建议大于1  |
 | client.undo.data.validation          | 二阶段回滚镜像校验 |  默认true开启，false关闭 |
@@ -84,7 +92,7 @@
     首先程序中配置了事务分组（GlobalTransactionScanner 构造方法的txServiceGroup参数），程序会通过用户配置的配置中心去寻找service.vgroup_mapping.事务分组配置项，取得配置项的值就是TC集群的名称。拿到集群名称程序通过一定的前后缀+集群名称去构造服务名，各配置中心的服务名实现不同。拿到服务名去相应的注册中心去拉取相应服务名的服务列表，获得后端真实的TC服务列表。
     3.为什么这么设计，不直接取服务名？
     这里多了一层获取事务分组到映射集群的配置。这样设计后，事务分组可以作为资源的逻辑隔离单位，当发生故障时可以快速failover。
-    
+
 ### 附录2：
     关于grouplist问题说明下。
     1. 什么时候会用到file.conf中的default.grouplist？

@@ -1,3 +1,9 @@
+---
+title: Seata Saga 模式
+keywords: Seata
+description: Saga模式是SEATA提供的长事务解决方案，在Saga模式中，业务流程中每个参与者都提交本地事务，当出现某一个参与者失败则补偿前面已经成功的参与者，一阶段正向服务和二阶段补偿服务都由业务开发实现。
+---
+
 # SEATA Saga 模式
 ## 概述
 Saga模式是SEATA提供的长事务解决方案，在Saga模式中，业务流程中每个参与者都提交本地事务，当出现某一个参与者失败则补偿前面已经成功的参与者，一阶段正向服务和二阶段补偿服务都由业务开发实现。
@@ -232,11 +238,13 @@ public interface InventoryAction {
 
 ## 状态机设计器
 
-Seata Saga 提供了一个可视化的状态机设计器方便用户使用，请参考：
+Seata Saga 提供了一个可视化的状态机设计器方便用户使用，代码和运行指南请参考：
 [https://github.com/seata/seata/tree/develop/saga/seata-saga-statemachine-designer](https://github.com/seata/seata/tree/develop/saga/seata-saga-statemachine-designer)
 
 状态机设计器截图:
 ![状态机设计器](/img/saga/seata-saga-statemachine-designer.png?raw=true)
+
+状态机设计器演示地址:[http://seata.io/saga_designer/index.html](http://seata.io/saga_designer/index.html)
 
 ## 最佳实践
 
@@ -380,7 +388,119 @@ public interface StateMachineEngine {
 }
 ```
 
-#### StateMachineEngine API
+
+#### StateMachine Execution Instance API: 
+``` java
+StateLogRepository stateLogRepository = stateMachineEngine.getStateMachineConfig().getStateLogRepository();
+StateMachineInstance stateMachineInstance = stateLogRepository.getStateMachineInstanceByBusinessKey(businessKey, tenantId);
+
+/**
+ * State Log Repository
+ *
+ * @author lorne.cl
+ */
+public interface StateLogRepository {
+
+    /**
+     * Get state machine instance
+     *
+     * @param stateMachineInstanceId
+     * @return
+     */
+    StateMachineInstance getStateMachineInstance(String stateMachineInstanceId);
+
+    /**
+     * Get state machine instance by businessKey
+     *
+     * @param businessKey
+     * @param tenantId
+     * @return
+     */
+    StateMachineInstance getStateMachineInstanceByBusinessKey(String businessKey, String tenantId);
+
+    /**
+     * Query the list of state machine instances by parent id
+     *
+     * @param parentId
+     * @return
+     */
+    List<StateMachineInstance> queryStateMachineInstanceByParentId(String parentId);
+
+    /**
+     * Get state instance
+     *
+     * @param stateInstanceId
+     * @param machineInstId
+     * @return
+     */
+    StateInstance getStateInstance(String stateInstanceId, String machineInstId);
+
+    /**
+     * Get a list of state instances by state machine instance id
+     *
+     * @param stateMachineInstanceId
+     * @return
+     */
+    List<StateInstance> queryStateInstanceListByMachineInstanceId(String stateMachineInstanceId);
+}
+```
+
+
+#### StateMachine Definition API:
+``` java
+StateMachineRepository stateMachineRepository = stateMachineEngine.getStateMachineConfig().getStateMachineRepository();
+StateMachine stateMachine = stateMachineRepository.getStateMachine(stateMachineName, tenantId);
+
+/**
+ * StateMachineRepository
+ *
+ * @author lorne.cl
+ */
+public interface StateMachineRepository {
+
+    /**
+     * Gets get state machine by id.
+     *
+     * @param stateMachineId the state machine id
+     * @return the get state machine by id
+     */
+    StateMachine getStateMachineById(String stateMachineId);
+
+    /**
+     * Gets get state machine.
+     *
+     * @param stateMachineName the state machine name
+     * @param tenantId         the tenant id
+     * @return the get state machine
+     */
+    StateMachine getStateMachine(String stateMachineName, String tenantId);
+
+    /**
+     * Gets get state machine.
+     *
+     * @param stateMachineName the state machine name
+     * @param tenantId         the tenant id
+     * @param version          the version
+     * @return the get state machine
+     */
+    StateMachine getStateMachine(String stateMachineName, String tenantId, String version);
+
+    /**
+     * Register the state machine to the repository (if the same version already exists, return the existing version)
+     *
+     * @param stateMachine
+     */
+    StateMachine registryStateMachine(StateMachine stateMachine);
+
+    /**
+     * registry by resources
+     *
+     * @param resources
+     * @param tenantId
+     */
+    void registryByResources(Resource[] resources, String tenantId) throws IOException;
+}
+```
 
 ## Config referance
 #### 在Spring Bean配置文件中配置一个StateMachineEngine
